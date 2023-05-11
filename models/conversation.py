@@ -2,8 +2,9 @@ import logging
 
 from pydantic import BaseModel
 from typing import Dict, List, Optional
+from handler.utils import hash_int
 
-from models.generic import Metadata
+from models.generic import Bundle, Metadata
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +14,21 @@ class ConversationMetadata(Metadata):
 class SingleConversation(BaseModel):
     conv_id: str
     context: Optional[str] = None
-    user_request: Optional[str] = None
-    bot_response: Optional[str] = None
+    request: Optional[str] = None
+    response: Optional[str] = None
     metadata: Optional[ConversationMetadata] = None
+
+    def prompt_for_embedding(self, include_ctx: bool = False) -> str:
+        prompt = f"""
+            USER INPUT: {self.request}
+            ASSISTANT RESPONSE: {self.response}
+            """
+        if include_ctx:
+            prompt = f"""
+            RELATED MATERIALS: {self.context}
+
+            """ + prompt
+        return prompt
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, SingleConversation):
@@ -23,7 +36,7 @@ class SingleConversation(BaseModel):
         return False
     
     def __hash__(self) -> int:
-        return hash(self.conv_id)
+        return hash_int(self.conv_id)
 
 class Conversation(BaseModel):
     curr_conv: Optional[SingleConversation] = None
@@ -50,3 +63,8 @@ class Conversation(BaseModel):
 
 class ConversationEmbeddings(BaseModel):
     embeddings: Dict[SingleConversation, Optional[List[float]]]
+
+class MultipleConversation(Bundle):
+    theme: Optional[str] = None
+    contents: Optional[List[SingleConversation]] = None
+    embedding: Optional[ConversationEmbeddings] = None

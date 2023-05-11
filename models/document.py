@@ -3,8 +3,9 @@ import logging
 from pydantic import BaseModel, validator, root_validator
 from typing import List, Optional, Dict
 from datetime import datetime
+from handler.utils import hash_int
 
-from models.generic import Metadata
+from models.generic import Bundle, Metadata
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,8 @@ class DocumentVersion(BaseModel):
 
     @validator("modified_at")
     def _parse_datetime(cls, val):
+        if val is None:
+            return val
         import arrow
         if isinstance(val, datetime):
             return val
@@ -28,19 +31,23 @@ class DocumentVersion(BaseModel):
     
     def __eq__(self, other: object) -> bool:
         if isinstance(other, DocumentVersion):
-            return self.version_id == other.version_id
+            return self.version_id == other.version_id and self.version_url == other.version_url
         return False
     
     def __hash__(self) -> int:
-        return hash(self.version_id)
+        return hash_int(self.version_id + self.version_url)
     
     def __le__(self, other: object) -> bool:
         if isinstance(other, DocumentVersion):
+            if self.modified_at is None or other.modified_at is None:
+                return ValueError
             return self.modified_at <= other.modified_at
         return NotImplemented
     
     def __lt__(self, other: object) -> bool:
         if isinstance(other, DocumentVersion):
+            if self.modified_at is None or other.modified_at is None:
+                return ValueError
             return self.modified_at < other.modified_at
         return NotImplemented
     
@@ -48,12 +55,15 @@ class DocumentVersion(BaseModel):
 class DocumentMetadata(Metadata):
     version: Optional[DocumentVersion] = None
 
+    def __hash__(self) -> int:
+        return hash_int(str(super().__hash__()) + self.version.version_url)
+
 class DocumentChunkMetadata(BaseModel):
     doc_id: str
     doc_metadata: DocumentMetadata
 
 class DocumentChunk(BaseModel):
-    chunk_id: str
+    chunk_id: int
     text: str
     metadata: DocumentChunkMetadata
 
@@ -65,8 +75,11 @@ class DocumentChunkWithScore(DocumentChunk):
     
 class SingleDocument(BaseModel):
     doc_id: str
-    text: str
+    text: Optional[str] = None
     metadata: DocumentMetadata
+
+    def __hash__(self) -> int:
+        return hash(self.metadata)
 
 class SingleDocumentWithChunks(SingleDocument):
     chunks: List[DocumentChunk]
@@ -90,6 +103,6 @@ class DocumentFilter(BaseModel):
     start_date: Optional[datetime] = None
     final_date: Optional[datetime] = None
 
-class MultipleDocuments(BaseModel):
+class MultipleDocuments(Bundle):
     theme: Optional[str] = None
-    docs: Optional[List[SingleDocument]] = None
+    contents: Optional[List[SingleDocument]] = None

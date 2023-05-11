@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime
 from io import BufferedReader
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from fastapi import UploadFile
 import mimetypes
 from PyPDF2 import PdfReader
@@ -27,13 +27,15 @@ async def get_document_from_file(file: UploadFile) -> SingleDocument:
                                 created_at=meta["created_at"],
                                 created_by=meta["created_by"],
                                 version=version)
-    doc = SingleDocument(doc_id=content_hash, 
+    metadata_hash = hash(metadata)
+    doc_id = hash_string(str(metadata_hash))
+    doc = SingleDocument(doc_id=doc_id, 
                          text=extracted_text, 
                          metadata=metadata)
 
     return doc
 
-def extract_data_from_filepath(filepath: str, mimetype: Optional[str] = None) -> Tuple[str, Dict[str, Optional[any]]]:
+def extract_data_from_filepath(filepath: str, mimetype: Optional[str] = None) -> Tuple[str, Dict[str, Optional[Any]]]:
     """Return the text content of a file given its filepath."""
 
     if mimetype is None:
@@ -53,7 +55,7 @@ def extract_data_from_filepath(filepath: str, mimetype: Optional[str] = None) ->
     return extracted_text, {"created_at": created_at, "created_by": created_by, "modified_at": modified_at}
 
 def extract_data_from_file(file: BufferedReader, mimetype: str) -> Tuple[str, Optional[datetime], Optional[str], Optional[datetime]]:
-    created_at, created_by, modified_at = None, None
+    created_at, created_by, modified_at = None, None, None
     if mimetype == "application/pdf":
         extracted_text, created_at, created_by, modified_at = _textify_pdf(file)
     elif mimetype == "text/plain" or mimetype == "text/markdown":
