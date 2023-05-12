@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
-
-from alexandria.vectorstore.vectorstore import VectorStore
 sys.path[0] = str(Path(sys.path[0]).parent)
+from alexandria.vectorstore.providers.naivevectorstore import NaiveVectorStore
+from alexandria.vectorstore.vectorstore import VectorStore
 from alexandria.vectorstore.providers.faissvectorstore import FaissVectorStore
 from handler.embedding.openai import OpenAIEmbeddings
 from handler.embedding.vectorize import MockVectorize, embed_bundle
@@ -30,6 +30,8 @@ STAGE1_SECRET_KEY = "night_mother"
 STAGE2_SECRET_KEY = "what-is-the-meaning-of-life"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
+VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN = ".data/reserve/_session/docs/embeddings/"
+VECTORSTORE_DOC_SAVE_ROOT_FOR_USER = ".data/transient/_session-%s/docs/embeddings/"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 auth = OAuth2PasswordBearer(tokenUrl="token")
@@ -154,7 +156,7 @@ async def upsert_file(
     bundle = await docstore.upsert(documents, session_id, transient)
     assert isinstance(bundle, MultipleDocuments)
     if len(bundle.contents) == 0:
-        raise
+        return UpsertResponse(ids=[])
     if "_vecstore" not in holdings:
         _vecstore = FaissVectorStore(dim=512, 
                                      session_id=session_id, 
@@ -164,7 +166,16 @@ async def upsert_file(
     vecstore = holdings.get("_vecstore")
     assert isinstance(vecstore, VectorStore)
     await vecstore.upsert(bundle, vectorize)
-
+    vectorstore_save_root = VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN
+    if transient:
+        vectorstore_save_root = VECTORSTORE_DOC_SAVE_ROOT_FOR_USER % (str(session_id))
+    if isinstance(vecstore, FaissVectorStore):
+        await vecstore.serializing(save_root=vectorstore_save_root,
+                              is_doc=True)
+    else:
+        await vecstore.serializing(save_root=vectorstore_save_root)
+    bundle_ids = [x.doc_id for x in bundle.contents]
+    return UpsertResponse(ids=bundle_ids)
 
 if __name__ == "__main__":
     import uvicorn

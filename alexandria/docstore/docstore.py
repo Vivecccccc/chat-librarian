@@ -33,6 +33,8 @@ class DocStore(ABC):
             session_id: str,
             transient: bool
     ) -> MultipleDocuments:
+        # TODO
+        # consider if two files are the same document (but possible different versions)
         if transient:
             return MultipleDocuments(theme=session_id,
                                      contents=documents)

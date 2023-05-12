@@ -6,7 +6,8 @@ from models.document import ArchivedVersions, DocumentVersion, MultipleDocuments
 
 
 class JsonDocStore(DocStore):
-    DOC_FILES = 'reserve/_session/docs/bibliography'
+    DOC_FILES_ADMIN = 'reserve/_session/docs/bibliography'
+    DOC_FILES_USER = "transient/_session-%s/docs/bibliography"
     VERSIONS = 'reserve/_session/docs/versions'
     def __init__(self,
                  storage_root: str):
@@ -42,9 +43,9 @@ class JsonDocStore(DocStore):
     ) -> Dict[str, List[str]]:
         record_paths = []
         session_id = multi_docs.theme
-        doc_root = os.path.join(self.storage_root, f"transient/_session-{session_id}/docs/bibliography")
+        doc_root = os.path.join(self.storage_root, self.DOC_FILES_USER % (str(session_id)))
         if not transient:
-            doc_root = os.path.join(self.storage_root, self.DOC_FILES)
+            doc_root = os.path.join(self.storage_root, self.DOC_FILES_ADMIN)
             os.makedirs(doc_root, exist_ok=True)
             index = await self.__read_doc_index()
         else:
@@ -66,13 +67,13 @@ class JsonDocStore(DocStore):
             record_paths.append(doc_path)
         if not transient:
             index = {k: v.json() for k, v in index.items()}
-            with open(os.path.join(self.storage_root, self.DOC_FILES, 'index.json'), 'w') as f:
+            with open(os.path.join(self.storage_root, self.DOC_FILES_ADMIN, 'index.json'), 'w') as f:
                 json.dump(index, f)
         return {session_id: record_paths}
             
 
     async def __read_doc_index(self) -> Dict[str, SingleDocument]:
-        index_path = os.path.join(self.storage_root, self.DOC_FILES, 'index.json')
+        index_path = os.path.join(self.storage_root, self.DOC_FILES_ADMIN, 'index.json')
         if not os.path.isfile(index_path):
             return {}
         with open(index_path, 'r') as f:
@@ -100,7 +101,7 @@ class JsonDocStore(DocStore):
             document: SingleDocument
     ):
         doc_id = document.doc_id
-        doc_path = os.path.jon(self.storage_root, self.DOC_FILES, f"{doc_id}.json")
+        doc_path = os.path.jon(self.storage_root, self.DOC_FILES_ADMIN, f"{doc_id}.json")
         raise NotImplemented
     
     async def __archive_version(
