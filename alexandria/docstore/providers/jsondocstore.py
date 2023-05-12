@@ -110,7 +110,9 @@ class JsonDocStore(DocStore):
         doc_id = document.doc_id
         doc_version = document.metadata.version
         assert doc_version is not None
-        doc_version_file = os.path.join(self.storage_root, self.VERSIONS, f"{doc_id}.json")
+        doc_version_root = os.path.join(self.storage_root, self.VERSIONS)
+        os.makedirs(doc_version_root, exist_ok=True)
+        doc_version_file = os.path.join(doc_version_root, f"{doc_id}.json")
         O = {}
         if os.path.isfile(doc_version_file):
             with open(doc_version_file, 'r') as f:

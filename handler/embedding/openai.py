@@ -93,9 +93,9 @@ class OpenAIEmbeddings(BaseModel, Vectorize):
         openai_api_key = os.environ.get("OPENAI_API_KEY", None)
         openai_api_base = os.environ.get("OPENAI_API_BASE", "https://azure-openai-test-02.openai.azure.com")
         openai_api_type = os.environ.get("OPENAI_API_TYPE", "azure")
-        openai_api_version = os.environ.get("OPENAI_API_VERSION", cls.openai_api_version)
+        openai_api_version = os.environ.get("OPENAI_API_VERSION", values["openai_api_version"])
         if openai_api_type == "azure":
-            cls.deployment = cls.deployment if cls.deployment is not None else cls.model
+            values["deployment"] = values["deployment"] if values["deployment"] is not None else values["model"]
         try:
             import openai
             openai.api_key = openai_api_key
@@ -126,7 +126,7 @@ class OpenAIEmbeddings(BaseModel, Vectorize):
         self, 
         texts: List[str]
     ) -> List[List[float]]:
-        embeddings: List[List[float]] = [[] for _ in range(len(texts))]
+        embeddings: List[List[float]] = []
         for text in texts:
             embedding = self._embedding_func(text, engine=self.deployment)
             embeddings.append(embedding)

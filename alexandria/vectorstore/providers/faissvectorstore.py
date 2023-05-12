@@ -14,7 +14,7 @@ class FaissVectorStore(VectorStore):
     }
     def __init__(self,
                  dim: int,
-                 session_id: str,
+                 session_id: int,
                  transient: bool,
                  index_key: str = "Flat",
                  restore_index_from: Optional[str] = None,
@@ -34,7 +34,7 @@ class FaissVectorStore(VectorStore):
         - cuda: A boolean flag indicating whether to use GPU for computations.
         """
         self.d: int = dim
-        self.session_id: str = session_id
+        self.session_id: int = session_id
         self.transient: bool = transient
         self.index_key: str = index_key
         self.restore_index_from: Optional[str] = restore_index_from
@@ -125,8 +125,9 @@ class FaissVectorStore(VectorStore):
         Args:
         - bundle: A Bundle object representing the embeddings to update or insert into the index.
         """
-        session_id = bundle.theme
-        assert session_id == self.session_id, "session_id not matched a recorded one"
+        session_id = int(bundle.theme)
+        if self.transient:
+            assert session_id == self.session_id, "session_id not matched a recorded one"
         contents = bundle.contents
         versioned_sub_ids: List[int] = []
         updated_sub_ids: List[int] = []

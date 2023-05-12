@@ -1,7 +1,6 @@
 from abc import ABC
 from typing import List
-from handler.embedding.vectorize import Vectorize
-from handler.utils import embed_bundle
+from handler.embedding.vectorize import Vectorize, embed_bundle
 
 from models.generic import Bundle
 
@@ -9,10 +8,9 @@ class VectorStore(ABC):
     async def upsert(
             self,
             bundle: Bundle,
-            transient: bool,
             emb_method: Vectorize
     ):
-        _bundle = embed_bundle(bundle, emb_method)
+        _bundle = await embed_bundle(bundle, emb_method)
         await self._upsert(_bundle)
 
     async def _upsert(

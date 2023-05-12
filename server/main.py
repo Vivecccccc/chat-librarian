@@ -1,9 +1,11 @@
 import sys
 from pathlib import Path
-sys.path[0] = str(Path(sys.path[0]).parent)
 
+from alexandria.vectorstore.vectorstore import VectorStore
+sys.path[0] = str(Path(sys.path[0]).parent)
+from alexandria.vectorstore.providers.faissvectorstore import FaissVectorStore
 from handler.embedding.openai import OpenAIEmbeddings
-from handler.embedding.vectorize import embed_bundle
+from handler.embedding.vectorize import MockVectorize, embed_bundle
 from handler.utils import hash_int
 from alexandria.docstore.docstore import DocStore
 from alexandria.docstore.router import get_docstore
@@ -151,5 +153,19 @@ async def upsert_file(
     assert isinstance(docstore, DocStore)
     bundle = await docstore.upsert(documents, session_id, transient)
     assert isinstance(bundle, MultipleDocuments)
-    vectorize = OpenAIEmbeddings()
-    bundle = embed_bundle(bundle, vectorize)
+    if len(bundle.contents) == 0:
+        raise
+    if "_vecstore" not in holdings:
+        _vecstore = FaissVectorStore(dim=512, 
+                                     session_id=session_id, 
+                                     transient=transient)
+        holdings.update({"_vecstore": _vecstore})
+    vectorize = MockVectorize()
+    vecstore = holdings.get("_vecstore")
+    assert isinstance(vecstore, VectorStore)
+    await vecstore.upsert(bundle, vectorize)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

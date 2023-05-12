@@ -101,9 +101,9 @@ def _textify_xlsx(file: BufferedReader):
 
 def _textify_pdf(file: BufferedReader):
     reader = PdfReader(file)
-    created_by = reader.getDocumentInfo().author
-    created_at = reader.getDocumentInfo().creation_date
-    modified_at = reader.getDocumentInfo().modification_date
+    created_by = reader.metadata.author
+    created_at = reader.metadata.creation_date
+    modified_at = reader.metadata.modification_date
     extracted_text = ""
     for page in reader.pages:
         extracted_text += page.extract_text()
