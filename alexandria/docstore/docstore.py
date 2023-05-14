@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
-import asyncio
 from handler.chunkify import get_document_chunks
 
-from models.document import MultipleDocuments, SingleDocument, SingleDocumentWithChunks
+from models.document import MultipleDocuments, SingleDocument
 
 class DocStore(ABC):
     async def upsert(

@@ -39,7 +39,8 @@ class VectorStore(ABC):
     @abstractmethod
     async def serializing(
             self,
-            save_root: str
+            save_root: str,
+            is_doc: bool
     ):
         raise NotImplemented
     

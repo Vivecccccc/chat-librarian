@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Dict, List
+from collections import Counter
 from alexandria.docstore.docstore import DocStore
 from models.document import ArchivedVersions, DocumentVersion, MultipleDocuments, SingleDocument, SingleDocumentWithChunks
 
@@ -13,11 +14,28 @@ class JsonDocStore(DocStore):
                  storage_root: str):
         self.storage_root = storage_root
 
+    def _pre_check(
+            self,
+            documents: List[SingleDocument]
+    ) -> List[SingleDocument]:
+        doc_ids = [doc.doc_id for doc in documents]
+        doc_ids_cnt = Counter(doc_ids)
+        repeats = [k for k, c in doc_ids_cnt.items() if c > 1]
+        if not repeats:
+            return documents
+        D: Dict[str: SingleDocument] = {}
+        for doc in documents:
+            ver_id = doc.metadata.version.version_id
+            if ver_id and ver_id not in D:
+                D.update({ver_id: doc})
+        return sorted(list(D.values()), key=lambda x: x.metadata.version)
+    
     async def _squash(
             self, 
             documents: List[SingleDocument],
             session_id: str
     ) -> MultipleDocuments:
+        documents = self._pre_check(documents)
         index = await self.__read_doc_index()
         existed_docs = [doc for doc in documents if hash(doc) in index]
         _iter = iter(existed_docs)

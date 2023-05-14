@@ -11,25 +11,37 @@ class NaiveVectorStore(VectorStore):
     def __init__(self,
                  session_id: int,
                  transient: bool,
-                 restore_from: Optional[str] = None
+                 restore_index_from: Optional[str] = None,
+                 restore_map_from: Optional[str] = None
                  ):
         self.session_id: int = session_id
         self.transient: bool = transient
-        self.restore_from: Optional[str] = restore_from
+        self.restore_index_from: Optional[str] = restore_index_from
+        self.restore_map_from: Optional[str] = restore_map_from
         self.raw_storage: Optional[Dict[int, List[float]]] = None
+        self.doc_map: Optional[Dict[str, List[str]]] = None
         self.arr_storage: Optional[np.ndarray] = None
         self.stored_ids: Optional[List[int]] = None
         self.has_queried_since_update: bool = False
-        self._setup()
+        self._setup_index()
+        self._setup_doc_map()
 
-    def _setup(self):
+    def _setup_doc_map(self):
+        if self.restore_map_from is not None and os.path.isfile(self.restore_map_from):
+            import json
+            with open(self.restore_map_from, 'r') as f:
+                self.doc_map = json.load(f)
+        else:
+            self.doc_map = {}
+
+    def _setup_index(self):
         self.raw_storage: Optional[Dict[int, List[float]]] = {}
         self.storage = None
         self.stored_ids = None
-        if self.restore_from is not None:
-            if os.path.isfile(self.restore_from):
+        if self.restore_index_from is not None:
+            if os.path.isfile(self.restore_index_from):
                 import json
-                with open(self.restore_from, 'r') as f:
+                with open(self.restore_index_from, 'r') as f:
                     self.raw_storage: Dict[int, List[float]] = json.load(f)
         
 
@@ -52,7 +64,7 @@ class NaiveVectorStore(VectorStore):
             raise ValueError("raw storage (dict-like) not initialized")
         assert len(vectors) == len(ids), "vectors and ids to be inserted not aligned"
         for id, vector in zip(ids, vectors):
-            self.raw_storage.update({id, vector})
+            self.raw_storage.update({id: vector})
         self.has_queried_since_update = False
 
     def __cosine_similarity(self, q: np.ndarray, v: np.ndarray) -> float:
@@ -82,13 +94,15 @@ class NaiveVectorStore(VectorStore):
             if isinstance(elem, SingleDocumentWithChunks):
                 doc_id = elem.doc_id
                 subs = elem.chunks
-                versioned_sub_ids.extend(self.map.get(doc_id, []))
+                versioned_sub_ids.extend(self.doc_map.get(doc_id, []))
+                self.doc_map.update({doc_id: []})
             elif isinstance(elem, SingleConversation):
                 subs = [elem]
             else:
                 raise ValueError
             for sub in subs:
                 if isinstance(sub, DocumentChunkWithEmbedding):
+                    self.doc_map.get(doc_id).append(sub.chunk_id)
                     updated_sub_ids.append(sub.chunk_id)
                     updated_embeddings.append(sub.embedding)
                 elif isinstance(sub, SingleConversation):
@@ -112,14 +126,25 @@ class NaiveVectorStore(VectorStore):
             candidates.append(self._find_topk(query, k))
         return candidates
     
-    async def serializing(self, save_root: str):
+    async def serializing(self, save_root: str, is_doc: bool):
         os.makedirs(save_root, exist_ok=True)
-        save_to = os.path.join(save_root, "v-ecords.json")
+        index_save_to = os.path.join(save_root, "vectors.json")
         import json
-        try:
-            with open(save_to, 'w') as f:
-                json.dump(self.raw_storage, f)
-            print(f"record has been saved to {save_to}")
-        except Exception as e:
-            print(f"record saving to {save_to} failed")
-            raise e
+        if self.raw_storage:
+            try:
+                with open(index_save_to, 'w') as f:
+                    json.dump(self.raw_storage, f)
+                print(f"JSON index written to {index_save_to}")
+            except Exception as e:
+                print(f"JSON index saving to {index_save_to} failed")
+                raise e
+        else:
+            raise ValueError("JSON index has not been initialized")
+        if is_doc:
+            if self.doc_map:
+                map_save_to = os.path.join(save_root, "mappings.json")
+                with open(map_save_to, 'w') as f:
+                    json.dump(self.doc_map, f)
+                print(f"document ID mapping written to {map_save_to}")
+            else:
+                print(f"document mapping has not been initialized")
