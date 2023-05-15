@@ -90,10 +90,10 @@ class OpenAIEmbeddings(BaseModel, Vectorize):
     @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
-        openai_api_key = os.environ.get("OPENAI_API_KEY", None)
-        openai_api_base = os.environ.get("OPENAI_API_BASE", "https://azure-openai-test-02.openai.azure.com")
-        openai_api_type = os.environ.get("OPENAI_API_TYPE", "azure")
-        openai_api_version = os.environ.get("OPENAI_API_VERSION", values["openai_api_version"])
+        openai_api_key = values["openai_api_key"] or os.environ.get("OPENAI_API_KEY", None)
+        openai_api_base = values["openai_api_base"] or os.environ.get("OPENAI_API_BASE", "https://azure-openai-test-02.openai.azure.com")
+        openai_api_type = values["openai_api_type"] or os.environ.get("OPENAI_API_TYPE", "azure")
+        openai_api_version = values["openai_api_version"] or os.environ.get("OPENAI_API_VERSION", values["openai_api_version"])
         if openai_api_type == "azure":
             values["deployment"] = values["deployment"] if values["deployment"] is not None else values["model"]
         try:

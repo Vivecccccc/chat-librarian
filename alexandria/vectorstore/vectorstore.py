@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List
 from handler.embedding.vectorize import Vectorize, embed_bundle
 
@@ -13,6 +13,7 @@ class VectorStore(ABC):
         _bundle = await embed_bundle(bundle, emb_method)
         await self._upsert(_bundle)
 
+    @abstractmethod
     async def _upsert(
             self,
             bundle: Bundle
@@ -26,11 +27,20 @@ class VectorStore(ABC):
     ):
         q_emb = await emb_method.embed_text_bundle(texts)
         await self._query(q_emb, k=3)
-
+    
+    @abstractmethod
     async def _query(
             self,
             vectors: List[List[float]],
             k: int = 3
+    ):
+        raise NotImplemented
+    
+    @abstractmethod
+    async def serializing(
+            self,
+            save_root: str,
+            is_doc: bool
     ):
         raise NotImplemented
     

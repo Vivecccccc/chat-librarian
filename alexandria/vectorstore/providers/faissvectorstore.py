@@ -41,25 +41,25 @@ class FaissVectorStore(VectorStore):
         self.restore_map_from: Optional[str] = restore_map_from
         self.cuda: bool = cuda
         self.index: Optional[faiss.Index] = None
-        self.map: Optional[Dict[str, List[str]]] = None
+        self.doc_map: Optional[Dict[str, List[str]]] = None
         self.device = None
         try:
             self._setup_index()
         except Exception as e:
             print(f"Initializing index failure: {e}")
-        self._setup_map()
+        self._setup_doc_map()
     
-    def _setup_map(self):
+    def _setup_doc_map(self):
         """
         Sets up the map instance variable, which is a dictionary that stores the mapping between document or
-        conversation IDs and their corresponding chunk IDs. If a path to a previously saved map is provided, it reads
+        and their corresponding chunk IDs. If a path to a previously saved map is provided, it reads
         the map from the file.
         """    
         if self.restore_map_from is not None and os.path.isfile(self.restore_map_from):
             with open(self.restore_map_from, 'r') as f:
-                self.map = json.load(f)
+                self.doc_map = json.load(f)
         else:
-            self.map = {}
+            self.doc_map = {}
 
     def _setup_index(self):
         """
@@ -83,7 +83,7 @@ class FaissVectorStore(VectorStore):
 
     def _remove_existed(self, ids: Optional[np.ndarray | List[int]]):
         """
-        Removes embeddings with IDs that already exist in the index. The ids parameter can be a list of IDs or a numpy
+        Removes embeddings with chunk IDs that already exist in the index. The ids parameter can be a list of IDs or a numpy
         array of integer values. If ids is None or an empty list, the method returns 0.
         
         Args:
@@ -136,19 +136,23 @@ class FaissVectorStore(VectorStore):
             if isinstance(elem, SingleDocumentWithChunks):
                 doc_id = elem.doc_id
                 subs = elem.chunks
-                versioned_sub_ids.extend(self.map.get(doc_id, []))
+                versioned_sub_ids.extend(self.doc_map.get(doc_id, []))
+                self.doc_map.update({doc_id: []})
             elif isinstance(elem, SingleConversation):
                 subs = [elem]
             else:
                 raise ValueError
             for sub in subs:
                 if isinstance(sub, DocumentChunkWithEmbedding):
+                    self.doc_map.get(doc_id).append(sub.chunk_id)
                     updated_sub_ids.append(sub.chunk_id)
                     updated_embeddings.append(sub.embedding)
                 elif isinstance(sub, SingleConversation):
                     updated_sub_ids.append(hash(sub))
                     assert isinstance(bundle, MultipleConversation)
                     updated_embeddings.append(bundle.embedding.embeddings.get(sub))
+                else:
+                    raise ValueError
         existed_cnt = self._remove_existed(versioned_sub_ids)
         print(f"removed found {existed_cnt} existed id(s)")
         self._add(updated_embeddings, updated_sub_ids)
@@ -165,3 +169,20 @@ class FaissVectorStore(VectorStore):
         vectors: np.ndarray = np.asarray(vectors, dtype=np.float32)
         _, idx = self.index.search(vectors, k)
         return idx.tolist()
+    
+    async def serializing(self, save_root: str, is_doc: bool):
+        os.makedirs(save_root, exist_ok=True)
+        index_save_to = os.path.join(save_root, "vectors.index")
+        if self.index is not None:
+            faiss.write_index(self.index, index_save_to)
+            print(f"FAISS index written to {index_save_to}")
+        else:
+            raise ValueError("FAISS index has not been initialized")
+        if is_doc:
+            if self.doc_map:
+                map_save_to = os.path.join(save_root, "mappings.json")
+                with open(map_save_to, 'w') as f:
+                    json.dump(self.doc_map, f)
+                print(f"document ID mapping written to {map_save_to}")
+            else:
+                print(f"document mapping has not been initialized")

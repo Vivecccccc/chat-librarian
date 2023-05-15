@@ -41,6 +41,11 @@ class Metadata(BaseModel):
 class Bundle(BaseModel):
     theme: Optional[str] = None
     contents: Optional[List[Any]] = None
+
+    def __len__(self):
+        if not self.contents:
+            return 0
+        return len(self.contents)
     
 # class Query(BaseModel):
 #     query: str
