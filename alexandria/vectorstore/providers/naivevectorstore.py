@@ -35,14 +35,13 @@ class NaiveVectorStore(VectorStore):
             self.doc_map = {}
 
     def _setup_index(self):
-        self.raw_storage: Optional[Dict[int, List[float]]] = {}
+        self.raw_storage: Dict[int, List[float]] = {}
         self.storage = None
         self.stored_ids = None
-        if self.restore_index_from is not None:
-            if os.path.isfile(self.restore_index_from):
-                import json
-                with open(self.restore_index_from, 'r') as f:
-                    self.raw_storage: Dict[int, List[float]] = json.load(f)
+        if self.restore_index_from is not None and os.path.isfile(self.restore_index_from):
+            import json
+            with open(self.restore_index_from, 'r') as f:
+                self.raw_storage: Dict[int, List[float]] = json.load(f)
         
 
     def _remove_existed(self, ids: Optional[List[int]]) -> int:

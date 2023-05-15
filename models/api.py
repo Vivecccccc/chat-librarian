@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     chunk_size: int
     embedding_method: str
     vectorstore: str
+    embedding_api_key: Optional[str] = None
+    embedding_api_base: Optional[str] = None
+    embedding_api_type: Optional[str] = None
+    embedding_api_version: Optional[str] = None
 
     @validator("mode", pre=True)
     def check_mode(cls, v):
@@ -44,8 +48,8 @@ class Settings(BaseSettings):
     @validator("embedding_method")
     def check_embedding_method(cls, v):
         if v not in {"openai", "standard"}:
-            v = "openai"
-            print(f"embedding method not allowed, fall back to openai method")
+            v = "standard"
+            print(f"embedding method not allowed, fall back to standard method")
         return v
     
     @validator("vectorstore")

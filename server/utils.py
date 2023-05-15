@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from typing import Dict, Optional
 from fastapi import HTTPException, Request, status
 from jose import ExpiredSignatureError, JWTError, jwt
-from constants import *
+from server.constants import *
 
 def authenticate_user(username: str, password: str) -> Optional[User]:
     user = USER_BASIC.get(username, None)
@@ -31,7 +31,7 @@ def get_current_user_from_cookies(cookies: Dict[str, str]):
     )
     if not cookies:
         raise cookie_timeout_exception
-    cookie = cookies["cookie"]
+    cookie = cookies["stage1"]
     implicit_token = jwt.decode(token=cookie, key=STAGE1_SECRET_KEY, algorithms=ALGORITHM)["token"]
     try:
         info = jwt.decode(token=implicit_token, key=STAGE2_SECRET_KEY, algorithms=ALGORITHM)
@@ -44,6 +44,9 @@ def get_current_user_from_cookies(cookies: Dict[str, str]):
 
 def get_user_belongings(request: Request):
     cookies = request.cookies
+    return get_user_belongings_from_cookies(cookies)
+
+def get_user_belongings_from_cookies(cookies):
     user = get_current_user_from_cookies(cookies)
     is_existed_user = user in USER_BELONGINGS
     if not is_existed_user:

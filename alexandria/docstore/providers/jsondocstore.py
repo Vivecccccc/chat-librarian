@@ -3,16 +3,29 @@ import json
 from typing import Dict, List
 from collections import Counter
 from alexandria.docstore.docstore import DocStore
-from models.document import ArchivedVersions, DocumentVersion, MultipleDocuments, SingleDocument, SingleDocumentWithChunks
+from models.document import (ArchivedVersions, 
+                             DocumentVersion, 
+                             MultipleDocuments, 
+                             SingleDocument, 
+                             SingleDocumentWithChunks)
+from server.constants import (DOCSTORE_SAVE_ROOT_FOR_ADMIN, 
+                              DOCSTORE_SAVE_ROOT_FOR_USER, 
+                              DOCSTORE_SAVE_VERSIONS_ROOT)
 
 
 class JsonDocStore(DocStore):
-    DOC_FILES_ADMIN = 'reserve/_session/docs/bibliography'
-    DOC_FILES_USER = "transient/_session-%s/docs/bibliography"
-    VERSIONS = 'reserve/_session/docs/versions'
     def __init__(self,
-                 storage_root: str):
-        self.storage_root = storage_root
+                 session_id: int,
+                 transient: bool):
+        doc_root = DOCSTORE_SAVE_ROOT_FOR_USER % (str(session_id))
+        if not transient:
+            doc_root = DOCSTORE_SAVE_ROOT_FOR_ADMIN
+            os.makedirs(doc_root, exist_ok=True)
+        else:
+            os.makedirs(doc_root, exist_ok=True)
+        self.session_id = session_id
+        self.doc_root = doc_root
+        self.transient = transient
 
     def _pre_check(
             self,
@@ -56,42 +69,35 @@ class JsonDocStore(DocStore):
     
     async def _upsert(
             self, 
-            multi_docs: MultipleDocuments,
-            transient: bool
-    ) -> Dict[str, List[str]]:
-        record_paths = []
-        session_id = multi_docs.theme
-        doc_root = os.path.join(self.storage_root, self.DOC_FILES_USER % (str(session_id)))
-        if not transient:
-            doc_root = os.path.join(self.storage_root, self.DOC_FILES_ADMIN)
-            os.makedirs(doc_root, exist_ok=True)
+            multi_docs: MultipleDocuments
+    ) -> tuple[int, List[str]]:
+        records = {}
+        if not self.transient:
             index = await self.__read_doc_index()
-        else:
-            os.makedirs(doc_root, exist_ok=True)
         docs = multi_docs.contents
         assert isinstance(docs, List)
         for doc in docs:
             doc_hash = hash(doc)
             serialized = doc.json()
-            doc_path = os.path.join(doc_root, f"{doc.doc_id}.json")
+            doc_path = os.path.join(self.doc_root, f"{doc.doc_id}.json")
             with open(doc_path, 'w') as f:
                 f.write(serialized)
-            if not transient:
+            if not self.transient:
                 _doc = SingleDocument(doc_id=doc.doc_id,
                                       text=None,
                                       metadata=doc.metadata)
                 index.update({doc_hash: _doc})
                 await self.__archive_version(_doc)
-            record_paths.append(doc_path)
-        if not transient:
+            records.update({doc_hash: doc})
+        if not self.transient:
             index = {k: v.json() for k, v in index.items()}
-            with open(os.path.join(self.storage_root, self.DOC_FILES_ADMIN, 'index.json'), 'w') as f:
+            with open(os.path.join(DOCSTORE_SAVE_ROOT_FOR_ADMIN, 'index.json'), 'w') as f:
                 json.dump(index, f)
-        return {session_id: record_paths}
+        return MultipleDocuments(theme=str(self.session_id), contents=list(records.values()))
             
 
     async def __read_doc_index(self) -> Dict[str, SingleDocument]:
-        index_path = os.path.join(self.storage_root, self.DOC_FILES_ADMIN, 'index.json')
+        index_path = os.path.join(DOCSTORE_SAVE_ROOT_FOR_ADMIN, 'index.json')
         if not os.path.isfile(index_path):
             return {}
         with open(index_path, 'r') as f:
@@ -119,7 +125,7 @@ class JsonDocStore(DocStore):
             document: SingleDocument
     ):
         doc_id = document.doc_id
-        doc_path = os.path.jon(self.storage_root, self.DOC_FILES_ADMIN, f"{doc_id}.json")
+        doc_path = os.path.join(DOCSTORE_SAVE_ROOT_FOR_ADMIN, f"{doc_id}.json")
         raise NotImplemented
     
     async def __archive_version(
@@ -129,7 +135,7 @@ class JsonDocStore(DocStore):
         doc_id = document.doc_id
         doc_version = document.metadata.version
         assert doc_version is not None
-        doc_version_root = os.path.join(self.storage_root, self.VERSIONS)
+        doc_version_root = DOCSTORE_SAVE_VERSIONS_ROOT
         os.makedirs(doc_version_root, exist_ok=True)
         doc_version_file = os.path.join(doc_version_root, f"{doc_id}.json")
         O = {}

@@ -7,6 +7,9 @@ STAGE1_SECRET_KEY = "night_mother"
 STAGE2_SECRET_KEY = "what-is-the-meaning-of-life"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
+DOCSTORE_SAVE_VERSIONS_ROOT = "./data/reserve/_session/docs/versions"
+DOCSTORE_SAVE_ROOT_FOR_ADMIN = ".data/reserve/_session/docs/bibliography"
+DOCSTORE_SAVE_ROOT_FOR_USER = "./data/transient/_session-%s/docs/bibliography"
 VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN = ".data/reserve/_session/docs/embeddings/"
 VECTORSTORE_DOC_SAVE_ROOT_FOR_USER = ".data/transient/_session-%s/docs/embeddings/"
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
