@@ -22,7 +22,8 @@ class Vectorize(ABC):
     
 async def embed_bundle(
         bundle: Bundle,
-        emb_method: Vectorize
+        emb_method: Vectorize,
+        **kwargs
 ) -> Bundle:
     contents = bundle.contents
     assert contents is not None
@@ -37,8 +38,9 @@ async def embed_bundle(
                         in zip(elem.chunks, embedding)]
             _generated.append(SingleDocumentWithChunks(**elem.dict(exclude={"chunks"}), chunks=_chunks))
         elif isinstance(elem, SingleConversation):
-            text = elem.prompt_for_embedding(include_ctx=False)
-            embedding = emb_method.embed_text(text)
+            prompt_template = kwargs.get("prompt_template", {})
+            prompt = elem.prompt_for_embedding(prompt_template=prompt_template)
+            embedding = await emb_method.embed_text(prompt)
             _generated.append((elem, embedding))
         else:
             raise ValueError

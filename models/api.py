@@ -10,8 +10,9 @@ class UpsertRequest(BaseModel):
 class UpsertResponse(BaseModel):
     ids: List[str]
 
-# class QueryRequest(BaseModel):
-#     queries: List[Query]
+class QueryRequest(BaseModel):
+    query: str
+    top_k: int
 
 # class QueryResponse(BaseModel):
 #     results: List[QueryResult]
@@ -21,14 +22,14 @@ class Settings(BaseSettings):
     chunk_size: int
     embedding_method: str
     vectorstore: str
-    embedding_api_key: Optional[str] = None
-    embedding_api_base: Optional[str] = None
-    embedding_api_type: Optional[str] = None
-    embedding_api_version: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    openai_api_base: Optional[str] = None
+    openai_api_type: Optional[str] = None
+    openai_api_version: Optional[str] = None
 
     @validator("mode", pre=True)
     def check_mode(cls, v):
-        if v not in {"query-only", "upsert-only", "upsert-and-query"}:
+        if v not in {"query-only", "upsert-and-query"}:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="set mode not allowed")
         return v

@@ -4,8 +4,8 @@ import os
 from alexandria.docstore.providers.jsondocstore import JsonDocStore
 
 
-async def get_docstore(session_id: str,
-                       transient: bool) -> DocStore:
+def get_docstore(session_id: int,
+                 transient: bool) -> DocStore:
     return JsonDocStore(session_id=session_id, transient=transient)
     # datastore = os.environ.get("DATASTORE", "JSON")
     # assert datastore is not None

@@ -12,3 +12,10 @@ def hash_int(s: str) -> int:
     o = hashlib.blake2s(s.encode(), digest_size=6)
     hash_bytes = o.digest()
     return int.from_bytes(hash_bytes, byteorder='big', signed=False)
+
+def hash_components(*args) -> str:
+    s = ""
+    for arg in args:
+        if isinstance(arg, str):
+            s += arg
+    return hash_string(s)

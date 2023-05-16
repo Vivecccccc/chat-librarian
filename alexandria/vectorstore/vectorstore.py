@@ -33,7 +33,7 @@ class VectorStore(ABC):
             self,
             vectors: List[List[float]],
             k: int = 3
-    ):
+    ) -> List[List[int]]:
         raise NotImplemented
     
     @abstractmethod
@@ -44,5 +44,18 @@ class VectorStore(ABC):
     ):
         raise NotImplemented
     
+    @abstractmethod
+    def _add(self, 
+             vectors: List[List[float]], 
+             ids: List[int]
+    ):
+        raise NotImplemented
+
+    def reverse_doc_map(self):
+        if self.doc_map:
+            chunk_map = {v: k for k, vs in self.doc_map.items() for v in vs}
+        else:
+            chunk_map = {}
+        return chunk_map
 
                 
