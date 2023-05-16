@@ -18,16 +18,15 @@ class SingleConversation(BaseModel):
     response: Optional[str] = None
     metadata: Optional[ConversationMetadata] = None
 
-    def prompt_for_embedding(self, include_ctx: bool = False) -> str:
-        prompt = f"""
-            USER INPUT: {self.request}
-            ASSISTANT RESPONSE: {self.response}
-            """
-        if include_ctx:
-            prompt = f"""
-            RELATED MATERIALS: {self.context}
-
-            """ + prompt
+    def prompt_for_embedding(self,
+                             prompt_template: Dict[str, str] = {}) -> str:
+        request_key = prompt_template.get("request", "USER INPUT")
+        response_key = prompt_template.get("response", "ASSISTANT RESPONSE")
+        context_key = prompt_template.get("context", None)
+        prompt = ""
+        prompt += f"{context_key}: {self.context}; \n" if context_key and self.context else ""
+        prompt += f"{request_key}: {self.request}; \n" if request_key and self.request else ""
+        prompt += f"{response_key}: {self.response}; \n" if self.response else f"{response_key}: "
         return prompt
 
     def __eq__(self, other: object) -> bool:
@@ -53,13 +52,26 @@ class Conversation(BaseModel):
         if prev_conv is not None:
             prev_conv.next_conv = self
 
-    def to_list(self) -> List[SingleConversation]:
-        result = []
+    def to_list(self, 
+                existed: List[SingleConversation] = [],
+                reverse: bool = False) -> List[SingleConversation]:
+        result = [x for x in existed] if existed else []
         current = self
         while current is not None:
             result.append(current.curr_conv)
-            current = current.next_conv
+            if reverse is not True:
+                current = current.next_conv
+            else:
+                current = current.prev_conv
         return result
+    
+    def update_dict(self,
+                    existed: Dict[str, SingleConversation]):
+        result = existed
+        current = self
+        while current is not None:
+            result.update({current.curr_conv.conv_id: current.curr_conv})
+            current = current.next_conv
 
 class ConversationEmbeddings(BaseModel):
     embeddings: Dict[SingleConversation, Optional[List[float]]]
