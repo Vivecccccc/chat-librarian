@@ -43,7 +43,8 @@ class NaiveVectorStore(VectorStore):
         if self.restore_index_from is not None and os.path.isfile(self.restore_index_from):
             import json
             with open(self.restore_index_from, 'r') as f:
-                self.raw_storage: Dict[int, List[float]] = json.load(f)
+                self.raw_storage: Dict[int, List[float]] = json.load(f, 
+                                                                     object_hook=lambda d: {int(k): v for k, v in d.items()})
         
 
     def _remove_existed(self, ids: Optional[List[int]]) -> int:

@@ -67,7 +67,7 @@ class OpenAIEmbeddings(BaseModel, Vectorize):
     client: Any  #: :meta private:
     model: str = "text-embedding-ada-002"
     deployment: str = model  # to support Azure OpenAI Service custom deployment names
-    openai_api_version: str = "2022-12-01"
+    openai_api_version: Optional[str] = "2023-03-15-preview"
     # to support Azure OpenAI Service custom endpoints
     openai_api_base: Optional[str] = None
     # to support Azure OpenAI Service custom endpoints
@@ -93,7 +93,7 @@ class OpenAIEmbeddings(BaseModel, Vectorize):
         openai_api_key = values["openai_api_key"] or os.environ.get("OPENAI_API_KEY", None)
         openai_api_base = values["openai_api_base"] or os.environ.get("OPENAI_API_BASE", "https://azure-openai-test-02.openai.azure.com")
         openai_api_type = values["openai_api_type"] or os.environ.get("OPENAI_API_TYPE", "azure")
-        openai_api_version = values["openai_api_version"] or os.environ.get("OPENAI_API_VERSION", values["openai_api_version"])
+        openai_api_version = values["openai_api_version"] or os.environ.get("OPENAI_API_VERSION", "2023-03-15-preview")
         if openai_api_type == "azure":
             values["deployment"] = values["deployment"] if values["deployment"] is not None else values["model"]
         try:

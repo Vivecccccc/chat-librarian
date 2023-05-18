@@ -7,7 +7,8 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 class OpenAIChatCompletion(BaseModel):
     client: Any  #: :meta private:
     model: str = "gpt-35-turbo"
-    openai_api_version: Optional[str] = "2022-12-01"
+    deployment: str = model
+    openai_api_version: Optional[str] = "2023-03-15-preview"
     # to support Azure OpenAI Service custom endpoints
     openai_api_base: Optional[str] = None
     # to support Azure OpenAI Service custom endpoints
@@ -30,7 +31,9 @@ class OpenAIChatCompletion(BaseModel):
         openai_api_key = values["openai_api_key"] or os.environ.get("OPENAI_API_KEY", None)
         openai_api_base = values["openai_api_base"] or os.environ.get("OPENAI_API_BASE", "https://azure-openai-test-02.openai.azure.com")
         openai_api_type = values["openai_api_type"] or os.environ.get("OPENAI_API_TYPE", "azure")
-        openai_api_version = values["openai_api_version"] or os.environ.get("OPENAI_API_VERSION", "2022-12-01")
+        openai_api_version = values["openai_api_version"] or os.environ.get("OPENAI_API_VERSION", "2023-03-15-preview")
+        if openai_api_type == "azure":
+            values["deployment"] = values["deployment"] if values["deployment"] is not None else values["model"]
         try:
             import openai
             openai.api_key = openai_api_key
@@ -49,5 +52,5 @@ class OpenAIChatCompletion(BaseModel):
     
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
     def respond(self, msgs: List[Dict[str, str]]) -> str:
-        response = self.client.create(model=self.model, messages=msgs)
+        response = self.client.create(model=self.model, messages=msgs, engine=self.deployment)
         return response["choices"][0].message.content.strip()

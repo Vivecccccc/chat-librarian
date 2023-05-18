@@ -24,11 +24,11 @@ class Metadata(BaseModel):
             return val
         import arrow
         if isinstance(val, datetime):
-            return val
+            return val.replace(tzinfo=None)
         assert isinstance(val, str), "modified_at is neither in string format nor datetime"
         try:
             time_obj = arrow.get(val)
-            return time_obj.datetime
+            return time_obj.datetime.replace(tzinfo=None)
         except arrow.parser.ParserError:
             logger.error(f"Invalid date format: {val}")
             return arrow.now()

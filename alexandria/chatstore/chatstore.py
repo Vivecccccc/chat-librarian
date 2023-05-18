@@ -71,15 +71,15 @@ class ChatStore:
             self._setup_temp_storage(holdings)
         else:
             self.docstore = get_docstore(session_id=self.session_id,
-                                               transient=self.transient)
+                                         transient=self.transient)
             self.vecstore = get_vecstore(session_id=self.session_id,
-                                               transient=self.transient,
-                                               vecstore=settings.vectorstore,
-                                               restore_root=VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN)
+                                         transient=self.transient,
+                                         vecstore=settings.vectorstore,
+                                         restore_root=VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN)
         self.chat_vecstore = get_vecstore(session_id=self.session_id,
-                                                transient=self.transient,
-                                                vecstore=settings.vectorstore,
-                                                restore_root=VECTORSTORE_CONV_SAVE_ROOT_FOR_USER)
+                                          transient=self.transient,
+                                          vecstore=settings.vectorstore,
+                                          restore_root=VECTORSTORE_CONV_SAVE_ROOT_FOR_USER)
         self.vectorize = get_vectorize(settings)
 
     def _setup_temp_storage(self, holdings: Dict[str, Any]):
