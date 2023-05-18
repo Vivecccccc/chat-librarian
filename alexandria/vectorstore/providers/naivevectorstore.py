@@ -20,7 +20,8 @@ class NaiveVectorStore(VectorStore):
         self.restore_map_from: Optional[str] = restore_map_from
         self.raw_storage: Optional[Dict[int, List[float]]] = None
         self.doc_map: Optional[Dict[str, List[str]]] = None
-        self.arr_storage: Optional[np.ndarray] = None
+        self.chunk_map: Optional[Dict[str, str]] = None
+        self.storage: Optional[np.ndarray] = None
         self.stored_ids: Optional[List[int]] = None
         self.has_queried_since_update: bool = False
         self._setup_index()
@@ -33,6 +34,7 @@ class NaiveVectorStore(VectorStore):
                 self.doc_map = json.load(f)
         else:
             self.doc_map = {}
+        self.chunk_map = self.reverse_doc_map()
 
     def _setup_index(self):
         self.raw_storage: Dict[int, List[float]] = {}
@@ -41,7 +43,8 @@ class NaiveVectorStore(VectorStore):
         if self.restore_index_from is not None and os.path.isfile(self.restore_index_from):
             import json
             with open(self.restore_index_from, 'r') as f:
-                self.raw_storage: Dict[int, List[float]] = json.load(f)
+                self.raw_storage: Dict[int, List[float]] = json.load(f, 
+                                                                     object_hook=lambda d: {int(k): v for k, v in d.items()})
         
 
     def _remove_existed(self, ids: Optional[List[int]]) -> int:
@@ -114,7 +117,8 @@ class NaiveVectorStore(VectorStore):
 
     async def _query(self, vectors: List[List[float]], k: int = 3):
         if not self.raw_storage:
-            raise ValueError("raw storage (dict-like) not initialized")
+            # raise ValueError("raw storage (dict-like) not initialized")
+            return []
         if self.has_queried_since_update is False:
             self.storage = np.array(list(self.raw_storage.values()), dtype=np.float32)
             self.stored_ids = list(self.raw_storage.keys())

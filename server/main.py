@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path[0] = str(Path(sys.path[0]).parent)
 from server.router.file import file_router
 from server.router.inout import inout_router
+from server.router.chat import conversation_router
 
 from fastapi import FastAPI
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from fastapi import FastAPI
 app = FastAPI()
 app.include_router(file_router)
 app.include_router(inout_router)
+app.include_router(conversation_router)
 
 # @app.get("/echo")
 # async def echo(request: Request, response: Response):

@@ -1,9 +1,9 @@
 import os
 import json
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from collections import Counter
 from alexandria.docstore.docstore import DocStore
-from models.document import (ArchivedVersions, 
+from models.document import (ArchivedVersions, DocumentChunk, 
                              DocumentVersion, 
                              MultipleDocuments, 
                              SingleDocument, 
@@ -125,7 +125,7 @@ class JsonDocStore(DocStore):
             document: SingleDocument
     ):
         doc_id = document.doc_id
-        doc_path = os.path.join(DOCSTORE_SAVE_ROOT_FOR_ADMIN, f"{doc_id}.json")
+        doc_path = os.path.join(self.doc_root, f"{doc_id}.json")
         raise NotImplemented
     
     async def __archive_version(
@@ -156,3 +156,17 @@ class JsonDocStore(DocStore):
         with open(doc_version_file, 'w') as f:
             # f.write(_archived.json())
             json.dump(O, f)
+
+    async def retrieve(self, doc_chunk_ids: List[Tuple[str, int]]) -> List[str]:
+        chunks: List[DocumentChunk] = []
+        for doc_id, chunk_id in doc_chunk_ids:
+            doc_path = os.path.join(self.doc_root, f"{doc_id}.json")
+            if not os.path.isfile(doc_path):
+                continue
+            with open(doc_path, "r") as f:
+                doc = json.load(f)
+            o = SingleDocumentWithChunks.parse_obj(doc)
+            for chunk in o.chunks:
+                if chunk_id == chunk.chunk_id:
+                    chunks.append(chunk.text)
+        return chunks

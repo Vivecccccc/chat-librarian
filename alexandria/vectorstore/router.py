@@ -1,10 +1,10 @@
 from alexandria.vectorstore.vectorstore import VectorStore
 import os
 
-async def get_vecstore(session_id: str,
-                       transient: bool,
-                       vecstore: str,
-                       **kwargs) -> VectorStore:
+def get_vecstore(session_id: str,
+                 transient: bool,
+                 vecstore: str,
+                 **kwargs) -> VectorStore:
     assert vecstore is not None
     restore_root = kwargs.get("restore_root", None)
     match vecstore:

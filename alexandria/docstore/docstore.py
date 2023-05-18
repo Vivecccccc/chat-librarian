@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from handler.chunkify import get_document_chunks
 
 from models.document import MultipleDocuments, SingleDocument
@@ -46,4 +46,11 @@ class DocStore(ABC):
             documents: List[SingleDocument],
             session_id: str
     ) -> MultipleDocuments:
+        raise NotImplemented
+    
+    @abstractmethod
+    async def retrieve(
+        self,
+        doc_chunk_ids: List[Tuple[str, int]]
+    ) -> List[str]:
         raise NotImplemented

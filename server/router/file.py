@@ -68,7 +68,7 @@ async def _init_vecstore(session_id: int,
     restore_root = VECTORSTORE_DOC_SAVE_ROOT_FOR_USER % (str(session_id)) if transient \
     else VECTORSTORE_DOC_SAVE_ROOT_FOR_ADMIN
     if "_vecstore" not in holdings:
-        _vecstore = await get_vecstore(session_id=session_id,
+        _vecstore = get_vecstore(session_id=session_id,
                                        transient=transient,
                                        vecstore=vectorstore,
                                        restore_root=restore_root,
@@ -76,10 +76,10 @@ async def _init_vecstore(session_id: int,
         holdings.update({"_vecstore": _vecstore})
     vecstore = holdings.get("_vecstore")
     assert isinstance(vecstore, VectorStore)
-    vectorize = await get_vectorize(settings)
+    vectorize = get_vectorize(settings)
     return vecstore, vectorize
 
-async def _init_docstore(session_id: str,
+async def _init_docstore(session_id: int,
                          transient: bool,
                          files: List[UploadFile], 
                          holdings: Dict[str, Any]) -> tuple[List[SingleDocument], DocStore]:
@@ -90,7 +90,7 @@ async def _init_docstore(session_id: str,
     if len(documents) == 0:
         raise
     if "_docstore" not in holdings:
-        _docstore = await get_docstore(session_id=session_id,
+        _docstore = get_docstore(session_id=session_id,
                                        transient=transient)
         holdings.update({"_docstore": _docstore})
     docstore = holdings.get("_docstore")
