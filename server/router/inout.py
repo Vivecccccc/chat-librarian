@@ -7,7 +7,7 @@ from server.constants import (ACCESS_TOKEN_EXPIRE_HOURS,
                               STAGE1_SECRET_KEY,
                               ALGORITHM)
 
-from server.utils import (authenticate_user, 
+from server.utils import (authenticate_user, get_current_user_from_cookies,
                           create_access_token, get_user_belongings)
 inout_router = APIRouter()
 
@@ -21,7 +21,7 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
             headers={"WWW-Authenticate": "Bearer"},
         )
     cookie = sign_new_cookie(user)
-    response.set_cookie(key="stage1", value=cookie, max_age=1800)
+    response.set_cookie(key="stage1", value=cookie, max_age=1800, samesite='none', secure=True)
     return "login successful"
 
 def sign_new_cookie(user):
@@ -38,7 +38,7 @@ def resign_cookie(prev_cookie):
 @inout_router.get("/logout")
 async def logout(request: Request, response: Response):
     if request.cookies:
-        response.delete_cookie(key="stage1")
+        response.delete_cookie(key="stage1", samesite='none', secure=True)
     return "logout successful"
 
 @inout_router.post("/config")
@@ -64,6 +64,20 @@ async def configuring(
                         embedding_method=embedding_method,
                         vectorstore=vectorstore)
     belongings.update({"settings": settings})
-    response.delete_cookie(key="stage1")
-    response.set_cookie(key="stage1", value=cookie, max_age=1800)
+    response.delete_cookie(key="stage1", samesite='none', secure=True)
+    response.set_cookie(key="stage1", value=cookie, max_age=1800, samesite='none', secure=True)
     return "configuring successful"
+
+@inout_router.get("/auth_is_valid")
+async def check_valid_auth(
+    request: Request,
+):
+    cookie_invalid_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credential invalidated"
+    )
+    cookies = request.cookies
+    cookie_user = get_current_user_from_cookies(cookies)
+    if not cookie_user:
+        raise cookie_invalid_exception
+    return "valid auth"

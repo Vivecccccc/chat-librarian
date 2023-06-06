@@ -19,11 +19,12 @@ class SingleConversation(BaseModel):
     metadata: Optional[ConversationMetadata] = None
 
     def prompt_for_embedding(self,
-                             prompt_template: Dict[str, str] = {}) -> str:
+                             prompt_template: Dict[str, str] = {},
+                             prompt_prefix: str = None) -> str:
         request_key = prompt_template.get("request", "USER INPUT")
         response_key = prompt_template.get("response", "ASSISTANT RESPONSE")
         context_key = prompt_template.get("context", None)
-        prompt = ""
+        prompt = "" if prompt_prefix is None else prompt_prefix + "\n"
         prompt += f"{context_key}: {self.context}; \n" if context_key and self.context else ""
         prompt += f"{request_key}: {self.request}; \n" if request_key and self.request else ""
         prompt += f"{response_key}: {self.response}; \n" if self.response else f"{response_key}: "

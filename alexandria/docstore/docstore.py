@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple
 from handler.chunkify import get_document_chunks
 
-from models.document import MultipleDocuments, SingleDocument
+from models.document import DocumentChunk, MultipleDocuments, SingleDocument
 
 class DocStore(ABC):
     async def upsert(
@@ -52,5 +52,5 @@ class DocStore(ABC):
     async def retrieve(
         self,
         doc_chunk_ids: List[Tuple[str, int]]
-    ) -> List[str]:
+    ) -> List[DocumentChunk]:
         raise NotImplemented

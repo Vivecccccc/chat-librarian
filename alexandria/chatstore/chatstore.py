@@ -149,7 +149,12 @@ class ChatStore:
     async def eloquence(self, query):
         STANDARD_PROMPT_TEMPLATE = {"request": "USER",
                                     "response": "ASSISTANT",
-                                    "context": "RELEVANT MATERIALS"}
+                                    "context": "SOURCES"}
+        STANDARD_PROMPT_PREFIX = """system
+Assistant helps the company employees with their questions on internal sources. Be brief in your answers.
+Answer ONLY with the facts listed in the list of SOURCES below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below. If asking a clarifying question to the user would help, ask the question.
+Each source has a name followed by colon and the actual information, always include the source name for each fact you use in the response. Use square brakets to reference the source, e.g. [info1.txt]. Don't combine sources, list each source separately, e.g. [info1.txt][info2.pdf].
+        """
         curr_conv = SingleConversation(conv_id=hash_components(query, str(datetime.utcnow().timestamp)),
                                        request=query)
         conv = Conversation(curr_conv=curr_conv)
@@ -171,7 +176,7 @@ class ChatStore:
         valid_convs.extend([r for p in prev_convs for r in p])
         valid_convs_texts = list(map(pair_map_to_msg, valid_convs))
         self.conversations.curr_conv.context = "\n".join(valid_docs_texts)
-        to_ask = self.conversations.curr_conv.prompt_for_embedding(prompt_template=STANDARD_PROMPT_TEMPLATE)
+        to_ask = self.conversations.curr_conv.prompt_for_embedding(prompt_template=STANDARD_PROMPT_TEMPLATE, prompt_prefix=STANDARD_PROMPT_PREFIX)
         to_ask = Msg(role="user", content=to_ask).dict()
         valid_convs_texts.append(to_ask)
         return valid_convs_texts
@@ -230,9 +235,9 @@ class ChatStore:
         chunk_map = self.vecstore.reverse_doc_map()
         if not chunk_map:
             raise ValueError("chunk-doc mapping not initialized")
-        valid_docs_chunks = [(chunk_map[chunk], chunk) for chunk in valid_chunks if chunk in chunk_map]
-        valid_docs_texts = await self.docstore.retrieve(valid_docs_chunks)
-        return valid_docs_texts
+        valid_docs_chunks_ids = [(chunk_map[chunk], chunk) for chunk in valid_chunks if chunk in chunk_map]
+        valid_docs_chunks = await self.docstore.retrieve(valid_docs_chunks_ids)
+        return [f"{chunk.metadata.doc_metadata.version.version_url}: {chunk.text}" for chunk in valid_docs_chunks]
 
     async def _get_query_pair(self, query):
         bundle_embed = await self.embed_chain_conv(conversations=self.conversations,
