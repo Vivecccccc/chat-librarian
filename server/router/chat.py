@@ -31,10 +31,10 @@ async def query(
     transient = True if mode == "upsert-and-query" else False
     chatstore = _init_chatstore(session_id=session_id, transient=transient, holdings=holdings, settings=_settings)
     q = request.query
-    messages = await chatstore.eloquence(q)
+    messages, srcs = await chatstore.eloquence(q)
     response = await chatstore.chat(msgs=messages)
     await chatstore.echo_response((q, response))
-    return response
+    return {'msg': response, 'src': [s.dict() for s in srcs]}
 
 def _init_chatstore(session_id: int,
                     transient: bool,
