@@ -9,6 +9,7 @@ class UpsertRequest(BaseModel):
 
 class UpsertResponse(BaseModel):
     ids: List[str]
+    urls: List[str]
 
 class QueryRequest(BaseModel):
     query: str
@@ -42,8 +43,6 @@ class Settings(BaseSettings):
         elif v > 800:
             v = 800
             print(f"too large chunk size, forced set to {v}")
-        else:
-            v = 500
         return v
     
     @validator("embedding_method")

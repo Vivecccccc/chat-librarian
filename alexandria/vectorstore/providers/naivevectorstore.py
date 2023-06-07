@@ -80,7 +80,7 @@ class NaiveVectorStore(VectorStore):
         similarities = np.apply_along_axis(lambda v: self.__cosine_similarity(query, v),
                                            axis=1,
                                            arr=candidates)
-        indices = np.argpartition(-similarities, k)[:k]
+        indices = np.argpartition(-similarities, min(similarities.shape[0] - 1, k))[:k]
         _subset = sorted([(i, similarities[i]) for i in indices], key=lambda x: x[1], reverse=True)
         return [ids[x[0]] for x in _subset]
 

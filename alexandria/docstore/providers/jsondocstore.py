@@ -168,5 +168,5 @@ class JsonDocStore(DocStore):
             o = SingleDocumentWithChunks.parse_obj(doc)
             for chunk in o.chunks:
                 if chunk_id == chunk.chunk_id:
-                    chunks.append(chunk.text)
+                    chunks.append(chunk)
         return chunks

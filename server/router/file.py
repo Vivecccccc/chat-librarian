@@ -45,6 +45,9 @@ async def upsert_file(
                                                transient,
                                                files,
                                                holdings)
+    documents = list(filter(lambda doc: doc.text != '', documents))
+    if len(documents) == 0:
+        return UpsertResponse(ids=[], urls=[])
     bundle = await docstore.upsert(documents, session_id, transient, chunk_size)
     assert isinstance(bundle, MultipleDocuments)
     if len(bundle.contents) == 0:
@@ -58,7 +61,8 @@ async def upsert_file(
     await vecstore.upsert(bundle, vectorize)
     await vecstore.serializing(save_root=restore_root, is_doc=True)
     bundle_ids = [x.doc_id for x in bundle.contents]
-    return UpsertResponse(ids=bundle_ids)
+    bundle_urls = [x.metadata.version.version_url for x in bundle.contents]
+    return UpsertResponse(ids=bundle_ids, urls=bundle_urls)
 
 async def _init_vecstore(session_id: int, 
                          transient: bool, 
